@@ -448,6 +448,9 @@
     <string name="pulseaudio_option">PulseAudio</string>
     <string name="enable_pulseaudio">設定 PulseAudio</string>
     <string name="enable_pulseaudio_description">透過 PulseAudio 啟用音訊支援</string>
+    <string name="media_decode_option">硬體解碼</string>
+    <string name="enable_media_decode">設定影片硬體解碼</string>
+    <string name="enable_media_decode_description">將容器內的影片解碼交給 Android 硬體解碼器，透過 VA-API 接入。需同時開啟 GPU 存取，並在主機端安裝 decode-daemon、容器內安裝 VA-API 驅動。目前僅支援高通平台，其他晶片會回落到軟體解碼。可用 vainfo 驗證。</string>
     <string name="tx11_extra_flags_label">Termux:X11 額外參數標記</string>
     <string name="tx11_extra_flags_placeholder">例如： -dpi 160 -force-sysvshm</string>
     <string name="enable_virgl">配置 VirGL 3D 加速</string>

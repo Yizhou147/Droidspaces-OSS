@@ -202,7 +202,7 @@
     <string name="enable_pulseaudio">Configure PulseAudio</string>
     <string name="enable_pulseaudio_description">Enable audio support via PulseAudio</string>
     <string name="enable_media_decode">Configure Hardware Video Decode</string>
-    <string name="enable_media_decode_description">Let container apps use the Android hardware video decoders through VA-API</string>
+    <string name="enable_media_decode_description">Route video decoding in the container to the Android hardware decoders through VA-API. Needs GPU Access on, plus decode-daemon on the host and the VA-API driver in the container. Qualcomm only for now, other chips fall back to software. Verify with vainfo.</string>
     <string name="tx11_extra_flags_label">Termux:X11 Extra Flags</string>
     <string name="tx11_extra_flags_placeholder">e.g. -dpi 160 -force-sysvshm</string>
     <string name="enable_virgl">Configure VirGL 3D Acceleration</string>
