@@ -90,7 +90,9 @@ void print_usage(void) {
       "      --pulse-audio         Configure PulseAudio sound server "
       "support\n"
       "      --media-decode        Configure MediaCodec hardware video "
-      "decode\n\n");
+      "decode\n"
+      "      --anland              Embed the anland display daemon "
+      "(Android)\n\n");
 
   printf(
       C_BOLD
@@ -399,6 +401,7 @@ static struct option long_options[] = {
     {"virgl-flags", required_argument, 0, 272},
     {"pulse-audio", no_argument, 0, 273},
     {"media-decode", no_argument, 0, 280},
+    {"anland", no_argument, 0, 278},
     {"gateway", required_argument, 0, 274},
     {"gateway-container", required_argument, 0, 274},
     {"gateway-net", required_argument, 0, 275},
@@ -499,6 +502,9 @@ int ds_apply_cli_overrides(int argc, char **argv, struct ds_config *cfg,
       break;
     case 280:
       cfg->media_decode = 1;
+      break;
+    case 278:
+      cfg->anland = 1;
       break;
     case 274:
       safe_strncpy(cfg->gateway_container, optarg,
