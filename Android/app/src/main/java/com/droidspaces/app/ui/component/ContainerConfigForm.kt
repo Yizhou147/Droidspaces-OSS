@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Cyclone
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.GppBad
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.filled.GppMaybe
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Public
@@ -168,43 +170,19 @@ fun ContainerConfigForm(
                         Text(context.getString(R.string.read_only), style = MaterialTheme.typography.bodyMedium)
                         Switch(checked = roEnabled, onCheckedChange = { roEnabled = it })
                     }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Surface(
-                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = { clearFocus(); showDestDialog = false }),
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                            tonalElevation = 0.dp
-                        ) {
-                            Box(modifier = Modifier.padding(14.dp), contentAlignment = Alignment.Center) {
-                                Text(context.getString(R.string.cancel), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    DialogFooterRow(
+                        dismissLabel = context.getString(R.string.cancel),
+                        confirmLabel = context.getString(R.string.ok),
+                        onDismiss = { clearFocus(); showDestDialog = false },
+                        onConfirm = {
+                            clearFocus()
+                            if (destPath.isNotBlank()) {
+                                onStateChange(state.copy(bindMounts = state.bindMounts + BindMount(tempSrcPath, destPath, roEnabled)))
+                                showDestDialog = false
                             }
-                        }
-                        Surface(
-                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(
-                                enabled = destPath.startsWith("/"),
-                                onClick = {
-                                    clearFocus()
-                                    if (destPath.isNotBlank()) {
-                                        onStateChange(state.copy(bindMounts = state.bindMounts + BindMount(tempSrcPath, destPath, roEnabled)))
-                                        showDestDialog = false
-                                    }
-                                }
-                            ),
-                            shape = RoundedCornerShape(14.dp),
-                            color = if (destPath.startsWith("/")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                            tonalElevation = 0.dp
-                        ) {
-                            Box(modifier = Modifier.padding(14.dp), contentAlignment = Alignment.Center) {
-                                Text(
-                                    context.getString(R.string.ok),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (destPath.startsWith("/")) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                )
-                            }
-                        }
-                    }
+                        },
+                        confirmEnabled = destPath.startsWith("/")
+                    )
                 }
             }
         }
@@ -496,6 +474,15 @@ fun ContainerConfigForm(
         )
 
         ToggleCard(
+            icon = Icons.Default.DesktopWindows,
+            title = context.getString(R.string.enable_anland),
+            description = context.getString(R.string.enable_anland_description),
+            checked = state.enableAnland,
+            onCheckedChange = { clearFocus(); onStateChange(state.copy(enableAnland = it)) },
+            enabled = true
+        )
+
+        ToggleCard(
             icon = Icons.Default.Layers,
             title = context.getString(R.string.enable_virgl),
             description = context.getString(R.string.enable_virgl_description),
@@ -510,6 +497,15 @@ fun ContainerConfigForm(
             description = context.getString(R.string.enable_pulseaudio_description),
             checked = state.enablePulseaudio,
             onCheckedChange = { clearFocus(); onStateChange(state.copy(enablePulseaudio = it)) },
+            enabled = true
+        )
+
+        ToggleCard(
+            icon = Icons.Filled.Movie,
+            title = context.getString(R.string.enable_media_decode),
+            description = context.getString(R.string.enable_media_decode_description),
+            checked = state.enableMediaDecode,
+            onCheckedChange = { clearFocus(); onStateChange(state.copy(enableMediaDecode = it)) },
             enabled = true
         )
 
@@ -729,7 +725,7 @@ fun ContainerConfigForm(
             tonalElevation = 0.dp
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                modifier = Modifier.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {

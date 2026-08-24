@@ -3,7 +3,7 @@ title: 显示、音频与桌面
 section: 指南
 order: 2
 desc: 在 Android 和 Linux 上为 Droidspaces 容器配置 GPU 加速、PulseAudio 音效与桌面环境自动启动。
-keywords: gpu, acceleration, droidspaces, termux, virgl, turnip, adreno, pulseaudio, sound, audio, desktop, xfce, container, graphics
+keywords: gpu, acceleration, droidspaces, termux, virgl, turnip, adreno, pulseaudio, sound, audio, vaapi, mediacodec, hardware decode, desktop, xfce, container, graphics
 -->
 
 # Droidspaces 显示、音频与桌面指南
@@ -22,6 +22,7 @@ keywords: gpu, acceleration, droidspaces, termux, virgl, turnip, adreno, pulseau
     - [02. Termux-X11 + VirGL（非高通 GPU）](#virgl)
     - [03. Turnip（原生高通/Adreno）](#turnip)
 - [**Android 音效（PulseAudio）**](#pulseaudio)
+- [**Android 视频硬件解码**](#media-decode)
 - [**桌面环境自动启动**](#de-autoboot)
 - [**Linux 桌面（AMD/Intel）**](#linux)
 
@@ -216,6 +217,62 @@ Droidspaces 通过 PulseAudio 将 Android 的音频栈桥接到容器中。启�
 > [!NOTE]
 >
 > **三星 One UI 6.1+ 设备：** Droidspaces 在启动 PulseAudio 前会自动通过 `LD_PRELOAD` 注入 `libskcodec.so`，以修复三星固件中 OpenSL ES 音频模块的隐藏依赖问题。无需用户进行任何操作。
+
+---
+
+<a id="media-decode"></a>
+
+## Android 视频硬件解码
+
+容器内的视频播放通常只能用 CPU 解码，因为容器无法访问 Android 的媒体栈。本功能打通了这条路径：宿主侧的一个小型守护进程通过 UNIX socket 暴露 Android 的 MediaCodec 解码器，该 socket 被 bind mount 到容器的 `/tmp/.decode-socket`，容器内的 VA-API 驱动再连接它。`DMD_ENDPOINT=unix:/tmp/.decode-socket` 会自动注入，因此 ffmpeg、Firefox 与 Chrome 都能通过各自常规的 VA-API 路径获得硬件解码，无需逐个应用配置。
+
+> [!WARNING]
+>
+> 本功能为**实验性，且目前仅支持高通平台**。容器侧驱动针对 `msm_drm` 内核驱动，仅在骁龙 865（Adreno 640）上验证过。在其他 SoC 上驱动不会被加载，应用将回落到软件解码。
+
+#### 要求
+
+- 宿主侧需在 `/data/local/Droidspaces/bin/decode-daemon` 安装 `decode-daemon` 二进制。
+- 容器内需在 `/usr/lib/aarch64-linux-gnu/dri/msm_drm_drv_video.so` 安装 VA-API 驱动。
+- 需启用 **GPU 访问**，使容器内存在 `/dev/dri/renderD128`。libva 依赖它发现驱动，浏览器路径也依赖它导出帧。
+- 两个组件均来自 [droidspaces-media-decode](https://github.com/Re-s/droidspaces-media-decode) 项目。
+
+#### 设置
+
+1. 打开 Droidspaces 应用，进入**编辑容器配置**。
+2. 启用 **GPU 访问**与**配置视频硬件解码**开关，然后保存。
+3. 启动容器。Droidspaces 将会：
+   - 在容器 fork 之前于宿主侧启动 `decode-daemon`。
+   - 等待其 socket 在工作区 `Decode` 目录下出现。
+   - 将该 socket bind mount 进容器并注入 `DMD_ENDPOINT`。
+
+   也可以通过命令行参数 `--media-decode` 启用。
+
+4. 在容器内验证驱动已被加载：
+
+   ```bash
+   vainfo
+   ```
+
+   预期输出包含 Droidspaces MediaCodec 驱动的版本字符串，以及一组 `VAEntrypointVLD` profile。
+
+5. 通过 VA-API 解码文件：
+
+   ```bash
+   ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 \
+          -hwaccel_output_format vaapi \
+          -i input.mp4 -vf hwdownload,format=nv12 -f rawvideo -y out.yuv
+   ```
+
+   `-hwaccel_output_format vaapi` 是必需的。缺少它时 ffmpeg 会尝试转换为软件格式并报错。
+
+> [!NOTE]
+>
+> 视频硬件解码**仅适用于 Android**。在 Linux 桌面端，容器使用宿主机自身的 VA-API 栈，Droidspaces 无需额外配置。
+
+> [!NOTE]
+>
+> 非 root 的容器用户需要加入 GPU 用户组：`sudo usermod -aG droidspaces-gpu <你的用户名>`。
 
 ---
 

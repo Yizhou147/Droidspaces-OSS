@@ -50,3 +50,14 @@
 (allow system_server droidspacesd (binder (call transfer)))
 (allow system_server droidspacesd (fd (use)))
 (allow system_server droidspacesd (fifo_file (write)))
+
+; Allow the media service domains to hand binder handles to droidspacesd, which
+; MediaCodec hardware video decode needs.
+; A permissive droidspacesd is not enough: binder transfer is checked against
+; the sender, and these domains are enforcing. Without this, getService returns
+; EX_TRANSACTION_FAILED, the codec client cannot obtain IOmx, and it aborts on
+; the Codec2 fallback path.
+(allow mediacodec droidspacesd (binder (call transfer)))
+(allow mediacodec droidspacesd (fd (use)))
+(allow mediametrics droidspacesd (binder (call transfer)))
+(allow mediametrics droidspacesd (fd (use)))

@@ -3,7 +3,7 @@ title: Display, Audio & Desktop
 section: Guides
 order: 2
 desc: GPU acceleration, PulseAudio sound, and desktop environment auto-boot for Droidspaces containers on Android and Linux.
-keywords: gpu, acceleration, droidspaces, termux, virgl, turnip, adreno, pulseaudio, sound, audio, desktop, xfce, container, graphics
+keywords: gpu, acceleration, droidspaces, termux, virgl, turnip, adreno, pulseaudio, sound, audio, vaapi, mediacodec, hardware decode, desktop, xfce, container, graphics
 -->
 
 # Droidspaces Display, Audio & Desktop Guide
@@ -22,6 +22,7 @@ This guide covers display setup, GPU acceleration, sound (PulseAudio), and deskt
     - [02. Termux-X11 + VirGL (Non-Qualcomm GPUs)](#virgl)
     - [03. Turnip (Native Qualcomm/Adreno)](#turnip)
 - [**Android Sound (PulseAudio)**](#pulseaudio)
+- [**Android Hardware Video Decode**](#media-decode)
 - [**Desktop Environment Auto-Boot**](#de-autoboot)
 - [**Linux Desktop (AMD/Intel)**](#linux)
 
@@ -215,6 +216,62 @@ Droidspaces bridges Android's audio stack into your container using PulseAudio. 
 > [!NOTE]
 >
 > **Samsung One UI 6.1+ devices:** Droidspaces automatically injects `libskcodec.so` via `LD_PRELOAD` before starting PulseAudio. This fixes a hidden dependency in the OpenSL ES audio module specific to Samsung firmware. No action is required from you.
+
+---
+
+<a id="media-decode"></a>
+
+## Android Hardware Video Decode
+
+Video playback inside a container normally runs on the CPU, because the container has no path to Android's media stack. This feature opens that path: a small host daemon exposes Android's MediaCodec decoders over a UNIX socket, the socket is bind-mounted into the container at `/tmp/.decode-socket`, and a VA-API driver inside the container dials it. `DMD_ENDPOINT=unix:/tmp/.decode-socket` is injected automatically, so ffmpeg, Firefox and Chrome pick up hardware decode through their normal VA-API path with no per application configuration.
+
+> [!WARNING]
+>
+> This feature is **experimental and currently Qualcomm-only**. The container side driver targets the `msm_drm` kernel driver, and it has been validated on Snapdragon 865 (Adreno 640) only. On other SoCs the driver will not load and applications fall back to software decode.
+
+#### Requirements
+
+- The `decode-daemon` binary installed at `/data/local/Droidspaces/bin/decode-daemon` on the host.
+- The VA-API driver installed inside the container at `/usr/lib/aarch64-linux-gnu/dri/msm_drm_drv_video.so`.
+- **GPU Access** enabled, so `/dev/dri/renderD128` is present in the container. libva needs it to find the driver, and the browser paths need it to export frames.
+- Both components come from the [droidspaces-media-decode](https://github.com/Re-s/droidspaces-media-decode) project.
+
+#### Setup
+
+1. Open the Droidspaces app and navigate to **Edit container configuration**.
+2. Enable **GPU Access** and the **Configure Hardware Video Decode** toggle, then save.
+3. Start the container. Droidspaces will:
+   - Launch `decode-daemon` on the host before the container forks.
+   - Wait for its socket to appear under the workspace `Decode` directory.
+   - Bind-mount that socket into the container and inject `DMD_ENDPOINT`.
+
+   You can also enable it via the CLI flag `--media-decode`.
+
+4. Verify the driver is picked up inside the container:
+
+   ```bash
+   vainfo
+   ```
+
+   Expect a Droidspaces MediaCodec driver version string and a list of `VAEntrypointVLD` profiles.
+
+5. Decode a file through VA-API:
+
+   ```bash
+   ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 \
+          -hwaccel_output_format vaapi \
+          -i input.mp4 -vf hwdownload,format=nv12 -f rawvideo -y out.yuv
+   ```
+
+   `-hwaccel_output_format vaapi` is required. Without it ffmpeg tries to convert to a software format and fails.
+
+> [!NOTE]
+>
+> Hardware video decode is **Android-only**. On Linux desktop hosts the container uses the host's own VA-API stack, so no Droidspaces configuration is needed.
+
+> [!NOTE]
+>
+> Non-root container users need GPU group membership: `sudo usermod -aG droidspaces-gpu <your_username>`.
 
 ---
 

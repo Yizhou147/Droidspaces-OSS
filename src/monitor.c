@@ -7,8 +7,7 @@
 
 #include "droidspace.h"
 
-/* ---------------------------------------------------------------------------
- * ds_console_drain - Empty the container's console PTY master.
+/* ds_console_drain - Empty the container's console PTY master.
  *
  * In BACKGROUND mode the monitor is the only process holding the console PTY
  * master, and nothing reads it (foreground mode drives it from the parent via
@@ -22,8 +21,7 @@
  * debugging. Draining continues even if the log write fails: keeping the PTY
  * buffer empty is the load-bearing part; logging is best-effort.
  *
- * master_fd must be O_NONBLOCK so read() returns EAGAIN once drained.
- * ---------------------------------------------------------------------------*/
+ * master_fd must be O_NONBLOCK so read() returns EAGAIN once drained. */
 static void ds_console_drain(int master_fd, int log_fd, size_t *logged) {
   char buf[4096];
   ssize_t n;
@@ -51,14 +49,12 @@ static void ds_console_drain(int master_fd, int log_fd, size_t *logged) {
   }
 }
 
-/* ---------------------------------------------------------------------------
- * ds_monitor_run - Supervisor process for a single container instance.
+/* ds_monitor_run - Supervisor process for a single container instance.
  *
  * Called immediately after fork() in start_rootfs(). Never returns - always
  * ends with _exit(). sync_pipe_write is the write-end of the parent sync
  * pipe; the monitor (or its intermediate child) writes the container init PID
- * through it on the first boot cycle, then closes it.
- * ---------------------------------------------------------------------------*/
+ * through it on the first boot cycle, then closes it. */
 void ds_monitor_run(struct ds_config *cfg, int sync_pipe_write) {
   int sync_pipe[2];
   sync_pipe[0] = -1;
@@ -712,6 +708,15 @@ reboot_loop:;
 
     if (is_android() && cfg->pulseaudio) {
       ds_pulse_daemon_start(cfg);
+    }
+
+    if (is_android() && cfg->media_decode) {
+      if (ds_decode_daemon_start(cfg) == 0) {
+        char sock[PATH_MAX];
+        snprintf(sock, sizeof(sock), "%s/%s/%s", get_workspace_dir(),
+                 DS_DECODE_SUBDIR, DS_DECODE_SOCK_NAME);
+        wait_for_socket_or_death(cfg->decode_pid, sock, 3000, 50000);
+      }
     }
 
     /* Refresh ns_inode: new container has a new PID namespace inode.

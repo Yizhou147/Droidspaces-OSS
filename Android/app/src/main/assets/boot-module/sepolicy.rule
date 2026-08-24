@@ -72,5 +72,21 @@ allow audioserver droidspacesd fd use
 allow mediaserver droidspacesd binder { call transfer }
 allow mediaserver droidspacesd fd use
 
+# for MediaCodec hardware video decode.
+# A permissive droidspacesd is not enough here: binder transfer is checked
+# against the sender, and these service domains are enforcing. Without the
+# transfer rule getService returns EX_TRANSACTION_FAILED, the codec client
+# cannot obtain IOmx, and it aborts on the Codec2 fallback path.
+allow mediacodec droidspacesd binder { call transfer }
+allow mediacodec droidspacesd fd use
+allow mediametrics droidspacesd binder { call transfer }
+allow mediametrics droidspacesd fd use
+
 # fix permission denied when read/write mounted storage (#213)
 allow mediaprovider_app droidspacesd fd use
+
+# for anland
+allow untrusted_app droidspacesd fd use
+allow surfaceflinger droidspacesd fd use
+allow hal_graphics_composer_default droidspacesd fd use
+allow untrusted_app su unix_stream_socket { read write }

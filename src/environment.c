@@ -7,9 +7,7 @@
 
 #include "droidspace.h"
 
-/* ---------------------------------------------------------------------------
- * Internal Helpers
- * ---------------------------------------------------------------------------*/
+/* Internal Helpers */
 
 static void set_container_defaults(const char *term) {
   setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -87,6 +85,10 @@ void ds_env_boot_setup(struct ds_config *cfg) {
     setenv("GALLIUM_DRIVER", "virpipe", 1);
   if (is_android() && cfg->pulseaudio)
     setenv("PULSE_SERVER", "unix:" DS_PULSE_SOCKET, 1);
+  /* The VA-API driver probes /run/dmd/decode.sock by default, so point it at
+   * the bridged path instead of patching the driver. */
+  if (is_android() && cfg->media_decode)
+    setenv("DMD_ENDPOINT", "unix:" DS_DECODE_SOCKET, 1);
 }
 
 void ds_env_save(const char *path, struct ds_config *cfg) {
@@ -122,17 +124,17 @@ void ds_env_save(const char *path, struct ds_config *cfg) {
     fprintf(f, "export GALLIUM_DRIVER='virpipe'\n");
   if (is_android() && cfg->pulseaudio)
     fprintf(f, "export PULSE_SERVER='unix:" DS_PULSE_SOCKET "'\n");
+  if (is_android() && cfg->media_decode)
+    fprintf(f, "export DMD_ENDPOINT='unix:" DS_DECODE_SOCKET "'\n");
 
   fclose(f);
   chmod(path, 0755);
 }
 
-/* ---------------------------------------------------------------------------
- * parse_env_file_to_config() - parse user environment variables into memory
+/* parse_env_file_to_config() - parse user environment variables into memory
  *
  * Called before fork() while host paths are still accessible.
- * Supports unlimited line length and variable count via dynamic allocation.
- * ---------------------------------------------------------------------------*/
+ * Supports unlimited line length and variable count via dynamic allocation. */
 void parse_env_file_to_config(const char *path, struct ds_config *cfg) {
   if (!path || path[0] == '\0' || !cfg)
     return;

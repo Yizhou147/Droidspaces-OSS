@@ -13,9 +13,7 @@ static void add_unknown_line(struct ds_config *cfg, const char *line);
  */
 #include <libgen.h>
 
-/* ---------------------------------------------------------------------------
- * Helpers
- * ---------------------------------------------------------------------------*/
+/* Helpers */
 
 static char *trim_whitespace(char *str) {
   while (isspace((unsigned char)*str))
@@ -211,9 +209,7 @@ void free_config_binds(struct ds_config *cfg) {
   cfg->bind_capacity = 0;
 }
 
-/* ---------------------------------------------------------------------------
- * Core Implementation
- * ---------------------------------------------------------------------------*/
+/* Core Implementation */
 
 int ds_config_load(const char *config_path, struct ds_config *cfg) {
   FILE *f = fopen(config_path, "re");
@@ -291,6 +287,10 @@ int ds_config_load(const char *config_path, struct ds_config *cfg) {
       cfg->virgl_extra_flags = val[0] ? strdup(val) : NULL;
     } else if (strcmp(key, "enable_pulseaudio") == 0) {
       cfg->pulseaudio = parse_bool(val);
+    } else if (strcmp(key, "enable_media_decode") == 0) {
+      cfg->media_decode = parse_bool(val);
+    } else if (strcmp(key, "enable_anland") == 0) {
+      cfg->anland = parse_bool(val);
     } else if (strcmp(key, "selinux_permissive") == 0) {
       cfg->selinux_permissive = parse_bool(val);
     } else if (strcmp(key, "allow_userns") == 0) {
@@ -652,6 +652,8 @@ static void ds_config_serialize_known(FILE *f, struct ds_config *cfg) {
     if (cfg->virgl_extra_flags)
       fprintf(f, "virgl_extra_flags=%s\n", cfg->virgl_extra_flags);
     fprintf(f, "enable_pulseaudio=%d\n", cfg->pulseaudio);
+    fprintf(f, "enable_media_decode=%d\n", cfg->media_decode);
+    fprintf(f, "enable_anland=%d\n", cfg->anland);
   }
   fprintf(f, "enable_hw_access=%d\n", cfg->hw_access);
   fprintf(f, "enable_gpu_mode=%d\n", cfg->gpu_mode);
@@ -992,8 +994,12 @@ int ds_config_save_by_name(const char *name, struct ds_config *cfg) {
   return ds_config_save(config_path, cfg);
 }
 
-void apply_reset_config(struct ds_config *cfg, int cli_net_mode_set,
-                        enum ds_net_mode cli_net_mode) {
+/* Wipe cfg back to defaults while preserving container identity. Shared by
+ * --reset and by restart's post-stop reload, which must start from the same
+ * clean slate a fresh start gets: ds_config_load only overlays the keys
+ * present in the file, so loading into a lived-in cfg would leave stale
+ * snapshot values behind for every conditionally-written key. */
+void ds_config_reset_defaults(struct ds_config *cfg) {
   char save_name[256], save_rootfs[PATH_MAX], save_img[PATH_MAX];
   char save_config[PATH_MAX], save_prog[64], save_uuid[64];
   int save_is_img = cfg->is_img_mount;
@@ -1033,6 +1039,11 @@ void apply_reset_config(struct ds_config *cfg, int cli_net_mode_set,
   cfg->unknown_head = save_head;
   cfg->unknown_tail = save_tail;
   cfg->block_nested_ns = save_block_nested_ns;
+}
+
+void apply_reset_config(struct ds_config *cfg, int cli_net_mode_set,
+                        enum ds_net_mode cli_net_mode) {
+  ds_config_reset_defaults(cfg);
 
   if (cli_net_mode_set)
     cfg->net_mode = cli_net_mode;
