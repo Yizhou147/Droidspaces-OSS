@@ -10,7 +10,7 @@
         android:shortcutLongLabel="@string/containers">
         <intent
             android:action="com.droidspaces.app.action.SHORTCUT_CONTAINERS"
-            android:targetPackage="com.droidspaces.app"
+            android:targetPackage="com.droidspaces.anland"
             android:targetClass="com.droidspaces.app.MainActivity" />
     </shortcut>
 
@@ -23,7 +23,7 @@
         android:shortcutLongLabel="@string/panel">
         <intent
             android:action="com.droidspaces.app.action.SHORTCUT_PANEL"
-            android:targetPackage="com.droidspaces.app"
+            android:targetPackage="com.droidspaces.anland"
             android:targetClass="com.droidspaces.app.MainActivity" />
     </shortcut>
 
@@ -36,7 +36,7 @@
         android:shortcutLongLabel="@string/settings">
         <intent
             android:action="com.droidspaces.app.action.SHORTCUT_SETTINGS"
-            android:targetPackage="com.droidspaces.app"
+            android:targetPackage="com.droidspaces.anland"
             android:targetClass="com.droidspaces.app.MainActivity" />
     </shortcut>
 

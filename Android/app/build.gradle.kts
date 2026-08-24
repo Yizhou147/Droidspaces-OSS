@@ -53,7 +53,8 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.droidspaces.app"
+        // Anland 定制版使用独立包名，可与原版 Droidspaces 共存安装
+        applicationId = "com.droidspaces.anland"
         minSdk = 26
         targetSdk = 34
         versionCode = dsVersionCodeVal
