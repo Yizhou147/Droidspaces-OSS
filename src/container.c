@@ -1884,6 +1884,12 @@ int show_info(struct ds_config *cfg, int trust_cfg_pid) {
       feat_count++;
     }
 
+    /* 9c. MediaCodec hardware video decode */
+    if (is_android() && cfg->media_decode) {
+      printf("  HW video decode: enabled\n");
+      feat_count++;
+    }
+
     /* 10. SELinux Status */
     if (access("/sys/fs/selinux/enforce", R_OK) == 0) {
       int status = ds_get_selinux_status();
